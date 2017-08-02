@@ -8,6 +8,8 @@ state={}
 mode=0
 chicken={}
 last_dir=2
+friction=0.1
+spd=0.2	
 
 coop={}
 
@@ -135,15 +137,34 @@ function draw_crazy()
 end
 
 function move_chicken()
-	local friction=0.1
-	local spd=0.2
 	if(btn(0)) then chicken.acc.x-=spd end
 	if(btn(1)) then chicken.acc.x+=spd end
 	if(btn(2)) then chicken.acc.y-=spd end
 	if(btn(3)) then chicken.acc.y+=spd end
 
- chicken.x+=chicken.acc.x
-	chicken.y+=chicken.acc.y
+	local newx=chicken.x+chicken.acc.x
+	local newy=chicken.y+chicken.acc.y
+	
+	--test for outside perimeter
+	if newx<=0 then
+		newx=0
+		chicken.acc.x=0
+	end
+	if newx>=120 then
+		newx=120
+		chicken.acc.x=0
+	end
+	if newy<=0 then
+		newy=0
+		chicken.acc.y=0
+	end
+	if newy>=120 then
+		newy=120
+		chicken.acc.y=0
+	end
+	
+ chicken.x=newx
+	chicken.y=newy
 	
 	if(chicken.acc.x>0) then chicken.acc.x-=friction end
 	if(chicken.acc.x<0) then chicken.acc.x+=friction end
@@ -176,10 +197,10 @@ function draw_chicken()
 	else
 		if(last_dir==0 or last_dir==1) then 
 			sprite=chicken.staticl
-			flip_x=last_dir==1 --and false or true
+			flip_x=last_dir==1
 		else
 			sprite=chicken.static
-			flip_y=last_dir==3 --and false or true
+			flip_y=last_dir==3
 		end
 	end
 	spr(sprite,chicken.x,chicken.y,1,1,flip_x,flip_y)
@@ -197,64 +218,36 @@ function draw_coop()
 end
 
 function make_coop(x,y,w,h)
-	--add(coop,spr(33,x,y,1,1,true,false))
 	add(coop,{33,x,y,1,1,false,false})
 	local nextx=x
 	local nexty=y
 	for i=2,w-1 do
 		nextx+=8
-		--add(coop,spr(32,nextx,nexty,1,1,true,false))
 		add(coop,{34,nextx,nexty,1,1,false,false})
 	end
 	nextx+=8
-	--add(coop,spr(33,nextx,nexty,1,1,true,true))
 		add(coop,{33,nextx,nexty,1,1,true,false})
 	for g=2,h-1 do
 		nexty+=8
 		nextx=x
-		--add(coop,spr(34,nextx,nexty))
 		add(coop,{32,nextx,nexty,1,1,false,false})
 		for i=2,w-1 do
 			nextx+=8
-			--add(coop,spr(35+rand(1),nextx,nexty,1,1,rand(1)==0,rand(1)==0))
 			add(coop,{35+rand(1),nextx,nexty,1,1,rand(1)==0,rand(1)==0})
 		end
 		nextx+=8
-		--add(coop,spr(34,nextx,nexty,1,1,false,true))
 		add(coop,{32,nextx,nexty,1,1,true,false})
 	end
 	nexty+=8
 	nextx=x
 	local door=flr(w/2)
-	--add(coop,spr(33,nextx,nexty,1,1,false,true))
 	add(coop,{33,nextx,nexty,1,1,false,true})
 	for i=2,w-1 do
 		nextx+=8
-		--add(coop,spr(i==door and 35+rand(1) or 34,nextx,nexty,1,1,false,true))		
 		add(coop,{i==door and 35+rand(1) or 34,nextx,nexty,1,1,false,true})
 	end
 	nextx+=8
-	--add(coop,spr(33,nextx,nexty,1,1,false,true))
 	add(coop,{33,nextx,nexty,1,1,true,true})
-	
-	--spr(33,119,1,1,1,true,false)
-	--spr(32,119,9,1,1,true,false)
-	--spr(32,119,17,1,1,true,false)
-	--spr(33,119,25,1,1,true,true)
-	--spr(34,111,1)
-	--spr(34,103,1)
-	--spr(34,95,1)
-	--spr(34,87,1)
-	--spr(34,79,1)
-	--spr(33,71,1)
-	--spr(32,71,9)
-	--spr(32,71,17)
-	--spr(33,71,25,1,1,false,true)
-	--spr(34,79,25,1,1,false,true)
-	--spr(34,87,25,1,1,false,true)
-	--spr(34,95,25,1,1,false,true)
-	--spr(35,103,25)
-	--spr(36,111,25)
 end
 
 function rand(mx)
