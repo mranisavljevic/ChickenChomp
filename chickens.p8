@@ -9,21 +9,30 @@ mode=0
 chicken={}
 last_dir=2
 friction=0.1
-spd=0.2	
+spd=0.2
 
 coop={}
+worm={}
 
 function _init()
 	cls()
 	pal(8,0)
-	state.draw=select_draw
-	state.update=select_update
-	chicken.selection=0
-	chicken.x=60
-	chicken.y=60
-	chicken.acc={}
-	chicken.acc.x=0
-	chicken.acc.y=0
+ init()
+end
+
+function init()
+ state.draw=draw_tutorial
+ state.update=update_tutorial
+ chicken.selection=0
+ chicken.x=60
+ chicken.y=60
+ chicken.acc={}
+ chicken.acc.x=0
+ chicken.acc.y=0
+ chicken.hngr=0
+ chicken.tmr=0
+ chicken.tot=0
+ make_worms()
 end
 
 function _update()
@@ -34,23 +43,36 @@ function _draw()
 	state.draw()
 end
 
-function select_draw()
+function draw_tutorial()
+ print("‹‘”ƒ keys to move",22,20,14)
+ print("Ž to eat the worms",26,30,14)
+ print("press — to start",30,100,11)
+end
+
+function update_tutorial()
+ if(btnp(5)) then
+  state.update=update_select
+  state.draw=draw_select
+ end
+end
+
+function draw_select()
 	cls()
 	rect(0,0,127,127,14)
-	print("choose a chicken",34,64,14)	
-	print("z to select",44,80,14)
+	print("choose a chicken",32,64,14)
+	print("— to select",40,80,11)
 	spr(1,20,24)
-	print("jojo",17,40)
+	print("jojo",17,40,6)
 	spr(4,60,24)
-	print("peach",55,40)
+	print("peach",55,40,6)
 	spr(7,100,24)
-	print("lolly",95,40)
+	print("lolly",95,40,6)
 	if(chicken.selection==0) then rect(12,20,36,48,13) end
 	if(chicken.selection==1) then rect(52,20,76,48,13) end
 	if(chicken.selection==2) then rect(92,20,116,48,13) end
 end
 
-function select_update()
+function update_select()
 	if(btnp(0)) then
 	 chicken.selection=(chicken.selection>0 and chicken.selection-1 or 2)
 	--	if(chicken.selection>0) then chicken.selection-=1 end
@@ -59,7 +81,7 @@ function select_update()
 		chicken.selection=(chicken.selection<2 and chicken.selection+1 or 0)
 		--if(chicken.selection<2) then chicken.selection+=1 end
 	end
-	if(btnp(4)) then
+	if(btnp(5)) then
 		select_chicken(chicken.selection)
 	end
 end
@@ -81,22 +103,22 @@ function select_chicken(num)
 	 chicken.moving=9
 	 chicken.movingl=25
 	end
-	--state.update=mode_update
-	--state.draw=mode_draw
+	--state.update=update_mode
+	--state.draw=draw_mode
 	start_game()
 end
 
-function mode_update()
+function update_mode()
 	if(btnp(2)) or (btnp(3)) then mode=(mode==1 and 0 or 1) end
 	if(btnp(4)) then start_game() end
 end
 
-function mode_draw()
+function draw_mode()
 	cls()
 	print("choose a mode",38,16,15)
 	print("casual",52,40,15)
 	print("crazy",54,60,15)
-	if(mode==0) then 
+	if(mode==0) then
 		line(52,50,74,50,9)
 	else
 		line(54,70,72,70,9)
@@ -104,21 +126,31 @@ function mode_draw()
 end
 
 function start_game()
-	make_coop(79,1,6,5)
+	--make_coop(79,1,6,5)
 	state.update=mode==0 and update_casual or update_crazy
 	state.draw=mode==0 and draw_casual or draw_crazy
 end
 
 function update_casual()
  move_chicken()
+ chicken_peck()
+	update_time()
+	if(chicken.hngr>=95) then
+		--game over
+  state.update=update_gameover
+  state.draw=draw_gameover
+	end
 end
 
 function draw_casual()
 	cls()
 	draw_ground()
-	draw_coop()
+	--draw_coop()
+	draw_worms()
 	draw_chicken()
+	draw_hngr()
 	--debug_mvmt()
+	--debug_eat()
 end
 
 function debug_mvmt()
@@ -126,6 +158,12 @@ function debug_mvmt()
  print(chicken.y,0,20,2)
  print(chicken.acc.x,0,10,3)
  print(chicken.acc.y,0,30,3)
+end
+
+function debug_eat()
+	print("in: ",0,10,2)
+	print(in_worms(),16,10,2)
+	print(worm.tmr,0,20,2)
 end
 
 function update_crazy()
@@ -144,7 +182,7 @@ function move_chicken()
 
 	local newx=chicken.x+chicken.acc.x
 	local newy=chicken.y+chicken.acc.y
-	
+
 	--test for outside perimeter
 	if newx<=0 then
 		newx=0
@@ -154,25 +192,63 @@ function move_chicken()
 		newx=120
 		chicken.acc.x=0
 	end
-	if newy<=0 then
-		newy=0
+	if newy<=8 then
+		newy=8
 		chicken.acc.y=0
 	end
 	if newy>=120 then
 		newy=120
 		chicken.acc.y=0
 	end
-	
+
  chicken.x=newx
 	chicken.y=newy
-	
+
 	if(chicken.acc.x>0) then chicken.acc.x-=friction end
 	if(chicken.acc.x<0) then chicken.acc.x+=friction end
 	if(chicken.acc.y>0) then chicken.acc.y-=friction end
 	if(chicken.acc.y<0) then chicken.acc.y+=friction end
-	
+
 	if(abs(chicken.acc.x)<0.1) then chicken.acc.x=0 end
 	if(abs(chicken.acc.y)<0.1) then chicken.acc.y=0 end
+	chicken.hngr+=0.2
+	chicken.hngr=chicken.hngr>=95 and 95 or chicken.hngr
+end
+
+function update_time()
+	chicken.tmr+=1
+	if(chicken.tmr==60) then
+		chicken.tmr=0
+		chicken.tot+=1
+	end
+ local wrm_time=180
+ local d=10
+ local adj=flr(chicken.tot/d)
+ if(chicken.tot<d) then adj=0 end
+ wrm_time-=(30*adj)
+ if(worm.tmr>wrm_time) then make_worms() end
+end
+
+function chicken_peck()
+	if(in_worms()) then
+		if(btnp(4)) then
+			chicken_eat()
+		end
+	end
+end
+
+function chicken_eat()
+	chicken.hngr-=4
+	if(chicken.hngr<0) then chicken.hngr=0 end
+	worm.tmr+=30
+end
+
+function in_worms()
+	local l=worm.loc
+	local c={}
+	c.x=chicken.x
+	c.y=chicken.y
+	return c.x>=l.x-6 and c.y>=l.y-6 and c.x<=l.x+6 and c.y<=l.y+6
 end
 
 function draw_chicken()
@@ -195,7 +271,7 @@ function draw_chicken()
 			last_dir=flip_y and 3 or 2
 		end
 	else
-		if(last_dir==0 or last_dir==1) then 
+		if(last_dir==0 or last_dir==1) then
 			sprite=chicken.staticl
 			flip_x=last_dir==1
 		else
@@ -207,7 +283,33 @@ function draw_chicken()
 end
 
 function draw_ground()
-	rectfill(0,0,127,127,4)
+	rectfill(0,8,127,127,4)
+end
+
+function make_worms()
+	worm={}
+	worm.tmr=0
+	local loc={}
+	loc.x=rand(116)
+	loc.y=rand(109)+10
+	worm.loc=loc
+end
+
+function draw_worms()
+	if(worm.tmr) then
+		local t=worm.tmr
+		local sprt=worm.sprt
+		if(t%12==0) then
+			sprt=39
+		elseif(t%6==0) then
+			sprt=38
+		elseif(t%3==0) then
+			sprt=37
+		end
+		worm.sprt=sprt
+		worm.tmr=t+1
+		spr(worm.sprt,worm.loc.x,worm.loc.y)
+	end
 end
 
 function draw_coop()
@@ -215,6 +317,19 @@ function draw_coop()
 		local s=coop[i]
 		spr(s[1],s[2],s[3],s[4],s[5],s[6],s[7])
 	end
+end
+
+function draw_hngr()
+	local clr=3
+	local h=chicken.hngr
+	if(h>10) then clr=11 end
+	if(h>30) then clr=10 end
+	if(h>60) then clr=9 end
+	if(h>80) then clr=8 end
+	pal(8,8)
+	print("hunger:",2,2,clr)
+	rectfill(30,2,30+chicken.hngr,6,clr)
+	pal(8,0)
 end
 
 function make_coop(x,y,w,h)
@@ -253,6 +368,23 @@ end
 function rand(mx)
 	return flr(rnd(mx+1))
 end
+
+function update_gameover()
+	if(btnp(5)) then
+		--start over
+  init()
+		state.update = update_select
+  state.draw = draw_select
+	end
+end
+
+function draw_gameover()
+ cls()
+ print("game over",46,56,2)
+ print("— to restart",36,66,11)
+end
+
+
 __gfx__
 000000000550000500090000000900000ff0000f0009000000090000077000070009000000090000000000000000000000000000000000000000000000000000
 000000009555555500555000005550009fffffff00fff00000fff000977777770077700000777000000000000000000000000000000000000000000000000000
@@ -270,14 +402,14 @@ __gfx__
 00000000000000000558585005585850000000000ff7f7f00ff7f7f0000000000778787007787870000000000000000000000000000000000000000000000000
 000000000000000000555500005550000000000000ffff0000fff000000000000077770000777000000000000000000000000000000000000000000000000000
 000000000000000000000000000555000000000000000000000fff00000000000000000000077700000000000000000000000000000000000000000000000000
-ddaaaaaaddddddddddddddddaaaaaaaaaaaaaaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-dda5aaaaddddddddddddddddaaaaaaaaa5aaaaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaaaaaddaaaaaaa5aaaaaaa5aa5aaaaaa5aaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaaaaaddaaaaa5aaaaaaaaaaaaaaaaaaaaaaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaaaaaddaaaaaaaaaaa5aaaaaaaaaaaaa5aaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaaaaaddaaaaaaaaaaaaaaaaaaaa5aaaaaaa5a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaa5aaddaa5aaaaa5aaaaaaa5aaaaaaaaaaaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ddaaaaaaddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddddddddddddddddaaaaaaaaaaaaaaaa4444e444444ee4ee4444e4440000000000000000000000000000000000000000000000000000000000000000
+dda5aaaaddddddddddddddddaaaaaaaaa5aaaaaa4ee444444e444444ee4444440000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddaaaaaaa5aaaaaaa5aa5aaaaaa5aaaa4e4444e44e444ee44e4444e40000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddaaaaa5aaaaaaaaaaaaaaaaaaaaaaaa4e4ee4e44e4e44e44eee44e40000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddaaaaaaaaaaa5aaaaaaaaaaaaa5aaaa4e4e44444e4e44444e4e44440000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddaaaaaaaaaaaaaaaaaaaa5aaaaaaa5a444e4ee4444e44e4444e44ee0000000000000000000000000000000000000000000000000000000000000000
+ddaaa5aaddaa5aaaaa5aaaaaaa5aaaaaaaaaaaaa444444e4444444e4444444e40000000000000000000000000000000000000000000000000000000000000000
+ddaaaaaaddaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4e44e444ee4ee4444e44e4e40000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
