@@ -18,9 +18,12 @@ shdw={}
 
 ss_chickens={}
 
+highscore=0
+
 function _init()
 	cls()
 	pal(8,0)
+	highscore=max(dget(0),0)
  init()
 end
 
@@ -556,10 +559,16 @@ function draw_gameover()
  local score=chicken.tmr>0 and chicken.tmr/60 or 0
  score+=chicken.tot
  score*=100
+ score=flr(score)
+ local newhigh=score>highscore
+ if(newhigh) then
+ 	dset(0,score)
+ 	print("new high score!",34,24,10)
+ end
  local scoretext="score: "..score
- print(scoretext,36,36,12)
- print("game over",46,56,2)
- print("— to restart",36,66,11)
+ print(scoretext,40,36,12)
+ print("game over",46,80,2)
+ print("— to restart",38,90,11)
 end
 
 
