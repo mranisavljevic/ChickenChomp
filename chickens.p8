@@ -63,6 +63,7 @@ end
 
 function _draw()
 	state.draw()
+-- print("old: "..highscore,8,16,11)
 end
 
 function set_shadow()
@@ -567,6 +568,8 @@ function draw_gameover()
  score*=100
  score=flr(score)
  local newhigh=score>highscore
+ --print("old: "..highscore,8,16,11)
+ --print("new: "..score,8,8,11)
  if(newhigh) then
  	dset(0,score)
  	print("new high score!",34,24,10)
