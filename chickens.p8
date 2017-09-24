@@ -13,6 +13,9 @@ spd=0.2
 
 coop={}
 worm={}
+score={}
+
+score_clrs={6,7,9,10,11,12,14,15}
 
 shdw={}
 
@@ -41,6 +44,8 @@ function init()
  chicken.tot=0
  chicken.sprt=2
  chicken.running=0
+ chicken.worm_score=0
+ score={}
  make_worms()
  set_shadow()
 
@@ -63,7 +68,6 @@ end
 
 function _draw()
 	state.draw()
--- print("old: "..highscore,8,16,11)
 end
 
 function set_shadow()
@@ -178,9 +182,6 @@ function draw_select()
  pset(104,31,9)
  pset(103,31,9)
 	print("lolly",95,40,6)
- --pset(24,30,9)
- --pset(64,31,9)
- --pset(103,31,9)
 	if(chicken.selection==0) then rect(12,20,36,48,13) end
 	if(chicken.selection==1) then rect(52,20,76,48,13) end
 	if(chicken.selection==2) then rect(92,20,116,48,13) end
@@ -189,11 +190,9 @@ end
 function update_select()
 	if(btnp(0)) then
 	 chicken.selection=(chicken.selection>0 and chicken.selection-1 or 2)
-	--	if(chicken.selection>0) then chicken.selection-=1 end
 	end
 	if(btnp(1)) then
 		chicken.selection=(chicken.selection<2 and chicken.selection+1 or 0)
-		--if(chicken.selection<2) then chicken.selection+=1 end
 	end
 	if(btnp(5)) then
  	sfx(0,1)
@@ -218,8 +217,6 @@ function select_chicken(num)
 	 chicken.moving=9
 	 chicken.movingl=25
 	end
-	--state.update=update_mode
-	--state.draw=draw_mode
 	start_game()
 end
 
@@ -241,7 +238,6 @@ function draw_mode()
 end
 
 function start_game()
-	--make_coop(79,1,6,5)
 	state.update=mode==0 and update_casual or update_crazy
 	state.draw=mode==0 and draw_casual or draw_crazy
 	music(-1)
@@ -260,6 +256,7 @@ function update_casual()
  end
  chicken_peck()
 	update_time()
+ update_score()
 	if(chicken.hngr>=95) then
 		--game over
   sfx(-1,3)
@@ -278,6 +275,7 @@ function draw_casual()
 	draw_shadow()
 	draw_chicken()
 	draw_hngr()
+ draw_score()
 	--debug_mvmt()
 	--debug_eat()
 end
@@ -293,14 +291,6 @@ function debug_eat()
 	print("in: ",0,10,2)
 	print(in_worms(),16,10,2)
 	print(worm.tmr,0,20,2)
-end
-
-function update_crazy()
-
-end
-
-function draw_crazy()
-	cls()
 end
 
 function move_chicken()
@@ -356,11 +346,32 @@ function update_time()
  local d=10
  local adj=flr(chicken.tot/d)
  if(chicken.tot<d) then adj=0 end
- wrm_time-=(30*adj)
+ wrm_time-=(15*adj)
  if(worm.tmr>wrm_time) then
   make_worms()
   sfx(0,1)
  end
+end
+
+function update_score()
+ if(score.y) then
+  score.x+=1
+  if(score.x>127) then score={} end
+ elseif(chicken.tot>0 and chicken.tot%8==0) then
+  score.x=-48
+  score.y=16
+  score.score=calc_score()
+  score.clr=score_clrs[rand(#score_clrs-1)+1]
+ end
+end
+
+function calc_score()
+ local scr=chicken.tmr>0 and chicken.tmr/60 or 0
+ scr+=chicken.tot
+ scr*=100
+ scr+=chicken.worm_score
+ scr=flr(scr)
+ return scr
 end
 
 function chicken_peck()
@@ -376,6 +387,8 @@ function chicken_eat()
 	chicken.hngr-=4
 	if(chicken.hngr<0) then chicken.hngr=0 end
 	worm.tmr+=30
+ chicken.worm_score+=worm.score
+ worm.score+=5
 end
 
 function in_worms()
@@ -481,6 +494,7 @@ end
 function make_worms()
 	worm={}
 	worm.tmr=0
+ worm.score=5
 	local loc={}
 	loc.x=rand(116)
 	loc.y=rand(109)+10
@@ -557,6 +571,12 @@ function make_coop(x,y,w,h)
 	add(coop,{33,nextx,nexty,1,1,true,true})
 end
 
+function draw_score()
+ if(score.y and score.score) then
+  print("score: "..score.score,score.x,score.y,score.clr)
+ end
+end
+
 function rand(mx)
 	return flr(rnd(mx+1))
 end
@@ -572,18 +592,13 @@ end
 
 function draw_gameover()
  cls()
- local score=chicken.tmr>0 and chicken.tmr/60 or 0
- score+=chicken.tot
- score*=100
- score=flr(score)
- local newhigh=score>highscore
- --print("old: "..highscore,8,16,11)
- --print("new: "..score,8,8,11)
+ local scre=calc_score()
+ local newhigh=scre>highscore
  if(newhigh) then
- 	dset(0,score)
- 	print("new high score!",34,24,10)
+ 	dset(0,scre)
+ 	print("new high score!",34,24,rand(14)+1)
  end
- local scoretext="score: "..score
+ local scoretext="score: "..scre
  print(scoretext,40,36,12)
  print("game over",46,80,2)
  print("— to restart",38,90,11)
