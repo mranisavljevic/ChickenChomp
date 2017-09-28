@@ -21,12 +21,9 @@ shdw={}
 
 ss_chickens={}
 
-highscore=0
-
 function _init()
 	cls()
 	pal(8,0)
-	highscore=max(dget(0),0)
  init()
 end
 
@@ -593,13 +590,7 @@ end
 function draw_gameover()
  cls()
  local scre=calc_score()
- local newhigh=scre>highscore
- if(newhigh) then
- 	dset(0,scre)
- 	print("new high score!",34,24,rand(14)+1)
- end
- local scoretext="score: "..scre
- print(scoretext,40,36,12)
+ print("score: "..scre,40,36,rand(14)+1)
  print("game over",46,80,2)
  print("— to restart",38,90,11)
 end
