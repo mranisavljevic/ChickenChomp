@@ -120,7 +120,7 @@ end
 function draw_tutorial()
  cls()
  print("‹‘”ƒ keys to move",22,20,12)
- print("Ž to eat the worms",26,30,12)
+ print("z to eat the worms",26,30,12)
  print("press — to start",30,100,11)
  for x=1,3 do
   local c=ss_chickens[x]
