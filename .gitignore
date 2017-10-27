@@ -45,6 +45,7 @@ luac.out
 
 
 # End of https://www.gitignore.io/api/lua
-chickenchomp.bin/linux/chickenchomp
-chickenchomp.bin/linux/data.pod
-chickenchomp.bin/windows/data.pod
+
+# Exclude all the binaries exported by Pico
+*.bin/
+
